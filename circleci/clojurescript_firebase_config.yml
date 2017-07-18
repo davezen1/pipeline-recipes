@@ -1,0 +1,43 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/working_directory
+    docker:
+      - image: circleci/clojure:lein-2.7.1-browsers
+    steps:
+      - checkout
+      - run:
+          name: Build for production with Leinegen
+          command: lein uberjar
+      - run:
+          name: test
+          command: lein test
+      - run:
+          name: install nodejs
+          command: "sudo apt-get update && sudo apt-get install nodejs"
+      - run:
+          name: install nodejs curl ppa
+          command: |
+            curl -sL curl -sL https://deb.nodesource.com/setup_6.x > nodesource_setup.sh
+            sudo bash nodesource_setup.sh
+            sudo apt-get install nodejs
+            sudo apt-get install build-essential
+      - run:
+          name: check versions of nodejs
+          command: "nodejs -v"
+      - run:
+          name: install npm
+          command: "sudo apt-get install npm"
+      - run:
+          name: update-npm
+          command: "sudo npm install -g npm@latest"
+      - run:
+          name: check versions of npm
+          command: "npm -v"
+      - deploy:
+          name: Maybe Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              sudo npm install firebase-tools
+              node_modules/firebase-tools/bin/firebase deploy -P <PROJECT NAME> --token ${FIREBASE_TOKEN} --non-interactive
+            fi
